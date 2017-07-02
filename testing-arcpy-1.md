@@ -134,3 +134,78 @@ tests\test_my_module.py .
 
 ========================== 1 passed in 11.61 seconds ==========================
 ```
+
+## Calculating a Field Value
+
+Now we want to add some logic to calculate our `SUM` value; again, we'll write the test first:
+
+```python
+    def test_calculates_sum(self):
+        feature_class = self.setup_data('SumData')
+        add_sum_field(feature_class)
+        with arcpy.da.SearchCursor(feature_class, ['SUM']) as cursor:
+            for row in cursor:
+                self.assertEqual(row[0], 2)
+```
+
+and watch it fail:
+
+```shell
+$ pytest
+============================= test session starts =============================
+platform win32 -- Python 2.7.12, pytest-3.1.2, py-1.4.34, pluggy-0.4.0
+rootdir: C:\develop\testing-arcpy, inifile:
+collected 2 items
+
+tests\test_my_module.py .F
+
+================================== FAILURES ===================================
+______________________ MyModuleTest.test_calculates_sum _______________________
+
+self = <tests.test_my_module.MyModuleTest testMethod=test_calculates_sum>
+
+    def test_calculates_sum(self):
+        feature_class = self.setup_data('SumData')
+        add_sum_field(feature_class)
+        with arcpy.da.SearchCursor(feature_class, ['SUM']) as cursor:
+            for row in cursor:
+>               self.assertEqual(row[0], 2)
+E               AssertionError: None != 2
+
+tests\test_my_module.py:42: AssertionError
+===================== 1 failed, 1 passed in 12.76 seconds =====================
+```
+
+then implement our business logic:
+
+```python
+import arcpy
+
+
+def add_sum_field(feature_class):
+    arcpy.AddField_management(
+        in_table=feature_class,
+        field_name='SUM',
+        field_type='DOUBLE'
+    )
+
+    fields = ['FIRST_VALUE', 'SECOND_VALUE', 'SUM'] 
+    with arcpy.da.UpdateCursor(feature_class, fields) as cursor:
+        for row in cursor:
+            row[2] = row[0] + row[1]
+            cursor.updateRow(row)
+```
+
+And check that our tests pass:
+
+```shell
+$ pytest
+============================= test session starts =============================
+platform win32 -- Python 2.7.12, pytest-3.1.2, py-1.4.34, pluggy-0.4.0
+rootdir: C:\develop\testing-arcpy, inifile:
+collected 2 items
+
+tests\test_my_module.py ..
+
+========================== 2 passed in 13.22 seconds ==========================
+```
