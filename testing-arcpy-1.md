@@ -4,7 +4,7 @@
 
 The design and history of [arcpy](http://pro.arcgis.com/en/pro-app/arcpy/get-started/what-is-arcpy-.htm) and its related modules can make it difficult to test, and testing and automation are not always given high priority in GIS projects.  Nevertheless, there are techniques to help ease the process, and it's relatively easy to test drive the development of GIS software.
 
-This post walks through a couple of simple test scenarios, and the full project is available on [github](https://github.com/lobsteropteryx/testing-arcpy).
+This post walks through a couple of basic test scenarios, and the full project is available on [github](https://github.com/lobsteropteryx/testing-arcpy).
 
 ## Geodatabase Operations
 
@@ -16,7 +16,7 @@ In this example, we'll test-drive a very simple feature:  Adding a new field, an
 
 While arcpy exposes methods to create a new feature class and insert records, this can become difficult to maintain for large numbers of tables with many fields.  Another approach is to use a [fixture](https://en.wikipedia.org/wiki/Test_fixture#Software).
 
-Our fixture will be a simpple file geocodatabase (FGDB); this database will hold known data that will be used by our tests.  Since a FGDB is just a directory, we can check it into our project and manage it just like any other test files.
+Our fixture will be a file geocodatabase (FGDB); this database will hold known data that will be used by our tests.  Since a FGDB is just a directory, we can check it into our project and manage it just like any other test files.
 
 When creating a test fixture, we want to use the minimum set of data needed to prove out our logic; in practice, this usually means tables with one or two rows--we'll be running the tests many, many times, so we want them to be as fast as possible!
 
