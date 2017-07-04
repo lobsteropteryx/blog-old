@@ -1,8 +1,7 @@
-# Testing with ArcPy
 
 [Test Driven Development](https://en.wikipedia.org/wiki/Test-driven_development#Limitations) has been a major part of the discipline of software engineering for almost two decades; a [Red-Green-Refactor](http://blog.cleancoder.com/uncle-bob/2014/12/17/TheCyclesOfTDD.html) cycle helps keep codebases maintainable, while lowering the risk of adding new features by protecting against regression and facilitating extensible designs.
 
-The design and history of [arcpy](http://pro.arcgis.com/en/pro-app/arcpy/get-started/what-is-arcpy-.htm) and its related modules can make it difficult to test, and testing and automation are not always given high priority in GIS projects.  Nevertheless, there are techniques to help ease the process, and it's relatively easy to test drive the development of GIS software.
+The design and history of [arcpy](http://pro.arcgis.com/en/pro-app/arcpy/get-started/what-is-arcpy-.htm) and its related modules can make it difficult to test, and automation is not always given high priority in GIS projects.  Nevertheless, there are techniques to help ease the process, and it's relatively easy to test drive the development of GIS software.
 
 This post walks through a couple of simple test scenarios, and the full project is available on [github](https://github.com/lobsteropteryx/testing-arcpy).
 
@@ -12,11 +11,11 @@ A common task that can be automated via arcpy is transforming geodatabase data a
 
 In this example, we'll test-drive a very simple feature:  Adding a new field, and populating it with the sum of two other fields.
 
-## Test Fixture
+## Test Fixtures
 
 While arcpy exposes methods to create a new feature class and insert records, this can become difficult to maintain for large numbers of tables with many fields.  Another approach is to use a [fixture](https://en.wikipedia.org/wiki/Test_fixture#Software).
 
-Our fixture will be a simpple file geocodatabase (FGDB); this database will hold known data that will be used by our tests.  Since a FGDB is just a directory, we can check it into our project and manage it just like any other test files.
+Our fixture will be a simple file geocodatabase (FGDB); this database will hold known data that will be used by our tests.  Since a FGDB is just a directory, we can check it into our project and manage it just like any other test files.
 
 When creating a test fixture, we want to use the minimum set of data needed to prove out our logic; in practice, this usually means tables with one or two rows--we'll be running the tests many, many times, so we want them to be as fast as possible!
 
@@ -95,7 +94,7 @@ def test adds_sum_field(self):
 
 and watch it fail:
 
-```shell
+```bash
 $ pytest
 ============================= test session starts =============================
 platform win32 -- Python 2.7.12, pytest-3.1.2, py-1.4.34, pluggy-0.4.0
@@ -136,7 +135,7 @@ def add_sum_field(feature_class):
 
 And rerun our tests:
 
-```shell
+```bash
 $ pytest
 ============================= test session starts =============================
 platform win32 -- Python 2.7.12, pytest-3.1.2, py-1.4.34, pluggy-0.4.0
@@ -147,6 +146,8 @@ tests\test_my_module.py .
 
 ========================== 1 passed in 11.61 seconds ==========================
 ```
+
+With everything green, we can now look for opportunities to refactor--we know our code works, and if we break something while cleaning up the code, we'll know right away.  There's not much logic here, so we'll go ahead and start the cycle over again, with a new, failing test.
 
 ## Calculating a Field Value
 
@@ -163,7 +164,7 @@ Now we want to add some logic to calculate our `SUM` value; again, we'll write t
 
 and watch it fail:
 
-```shell
+```bash
 $ pytest
 ============================= test session starts =============================
 platform win32 -- Python 2.7.12, pytest-3.1.2, py-1.4.34, pluggy-0.4.0
@@ -211,7 +212,7 @@ def add_sum_field(feature_class):
 
 And check that our tests pass:
 
-```shell
+```bash
 $ pytest
 ============================= test session starts =============================
 platform win32 -- Python 2.7.12, pytest-3.1.2, py-1.4.34, pluggy-0.4.0
@@ -223,7 +224,7 @@ tests\test_my_module.py ..
 ========================== 2 passed in 13.22 seconds ==========================
 ```
 
-Once everything is green, we take a moment to look for places to remove duplication, make our intent clear, and just clean up our code.  This is the refactor step, and it is **critical!**
+Once everything is green, we'll look again for places to remove duplication, make our intent clear, and just clean up our code (incuding our test code).  It's easy to gloss over the refactor step, but it is **critical!**
 
 Looking at our above code, we might separate out setting the new field value into its own function:
 
@@ -247,9 +248,9 @@ def _update_sum_value(feature_class):
             cursor.updateRow(row)
 ```
 
-and make sure our tests are still green:
+after making a change, we make sure our tests are still green:
 
-```shell
+```bash
 $ pytest
 ============================= test session starts =============================
 platform win32 -- Python 2.7.12, pytest-3.1.2, py-1.4.34, pluggy-0.4.0
