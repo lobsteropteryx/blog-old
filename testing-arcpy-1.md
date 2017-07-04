@@ -1,6 +1,6 @@
 # Testing with ArcPy
 
-[Test Driven Development](https://en.wikipedia.org/wiki/Test-driven_development#Limitations) has been a major part of the discipline of software engineering for over a decade; a [Red-Green-Refactor](http://blog.cleancoder.com/uncle-bob/2014/12/17/TheCyclesOfTDD.html) cycle helps keep codebases maintainable, while lowering the risk of adding new features by protecting against regression and facilitating extensible designs.
+[Test Driven Development](https://en.wikipedia.org/wiki/Test-driven_development#Limitations) has been a major part of the discipline of software engineering for almost two decades; a [Red-Green-Refactor](http://blog.cleancoder.com/uncle-bob/2014/12/17/TheCyclesOfTDD.html) cycle helps keep codebases maintainable, while lowering the risk of adding new features by protecting against regression and facilitating extensible designs.
 
 The design and history of [arcpy](http://pro.arcgis.com/en/pro-app/arcpy/get-started/what-is-arcpy-.htm) and its related modules can make it difficult to test, and testing and automation are not always given high priority in GIS projects.  Nevertheless, there are techniques to help ease the process, and it's relatively easy to test drive the development of GIS software.
 
