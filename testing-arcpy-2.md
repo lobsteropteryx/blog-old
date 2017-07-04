@@ -14,7 +14,7 @@ In a project of even moderate size and complexity, it's almost always worth wrap
 
 We don't have control over the arcpy module, and there's no guarantee that the function signatures or pubic interfaces won't change the next time we upgrade ArcMap; we might be asked to port our application to use ESRI's new [Python API](https://developers.arcgis.com/python/), or even [GDAL](http://www.gdal.org/)!  By keeping our arcmap calls isolated, we minimize the number of places we need to make code changes in the future if our underlying GIS system changes.
 
-###Iteration time
+### Iteration time
 
 There's no getting around it:  Testing with arcpy is SLOW.  As the codebase grows and the number of tests increase, it can make sense to run a subset of the tests while you're iterating, and the full suite less frequently, before checking in.  By keeping arcpy calls isolated, we can get orders of magnitude better performance out of our tests when working in a part of the codebase that doesn't need arcpy.
 
