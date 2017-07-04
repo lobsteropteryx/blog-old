@@ -1,18 +1,20 @@
 # Testing with ArcPy
 
-[Test Driven Development](https://en.wikipedia.org/wiki/Test-driven_development#Limitations) has been a major part of the discipline of software engineering for over a decade; a [Red-Green-Refactor]() cycle helps keep codebases maintainable, while lowering the risk of adding new features by protecting against regression and facilitating extensible designs.
+[Test Driven Development](https://en.wikipedia.org/wiki/Test-driven_development#Limitations) has been a major part of the discipline of software engineering for over a decade; a [Red-Green-Refactor](http://blog.cleancoder.com/uncle-bob/2014/12/17/TheCyclesOfTDD.html) cycle helps keep codebases maintainable, while lowering the risk of adding new features by protecting against regression and facilitating extensible designs.
 
 The design and history of [arcpy](http://pro.arcgis.com/en/pro-app/arcpy/get-started/what-is-arcpy-.htm) and its related modules can make it difficult to test, and testing and automation are not always given high priority in GIS projects.  Nevertheless, there are techniques to help ease the process, and it's relatively easy to test drive the development of GIS software.
 
-This post walks through a couple of simple test scenarios, and the full project is available on [github](https://github.com/lobsteropteryx/testing-arcpy)
+This post walks through a couple of simple test scenarios, and the full project is available on [github](https://github.com/lobsteropteryx/testing-arcpy).
 
 ## Geodatabase Operations
 
 A common task that can be automated via arcpy is transforming geodatabase data and schemas.  We may want to use [FieldMappings](http://pro.arcgis.com/en/pro-app/arcpy/classes/fieldmappings.htm), add or remove fields, and calculate new values derived from existing fields; all of these operations can be test-driven.
 
+In this example, we'll test-drive a very simple feature:  Adding a new field, and populating it with the sum of two other fields.
+
 ## Test Fixture
 
-While arcpy exposes methods to create a new feature class and insert records, this can become difficult to maintain for large numbers of tables with many fields.  Another approach is to use a [fixture](https://en.wikipedia.org/wiki/Test_fixture#Software.
+While arcpy exposes methods to create a new feature class and insert records, this can become difficult to maintain for large numbers of tables with many fields.  Another approach is to use a [fixture](https://en.wikipedia.org/wiki/Test_fixture#Software).
 
 Our fixture will be a simpple file geocodatabase (FGDB); this database will hold known data that will be used by our tests.  Since a FGDB is just a directory, we can check it into our project and manage it just like any other test files.
 
