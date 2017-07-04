@@ -46,18 +46,17 @@ class TestInitCap(TestCase):
         actual = init_cap('')
         self.assertEqual(actual, expected)
         
-    def test_captalizes first_letter_of_single_word(self):
+    def test_capitalizes_first_letter_of_single_word(self):
         expected = 'Foo'
         actual = init_cap('foo')
         self.assertEqual(actual, expected)
         
-    def test_captalizes first_letter_of_multiple_words(self):
+    def test_capitalizes_first_letter_of_multiple_words(self):
         expected = 'Foo Bar'
         actual = init_cap('foo bar')
         self.assertEqual(actual, expected)        
 
-
-    def test_does_not_captalize_words_that_start_with_numbers(self):
+    def test_does_not_capitalize_words_that_start_with_numbers(self):
         expected = '3g'
         actual = init_cap('3g')
         self.assertEqual(actual, expected)                
