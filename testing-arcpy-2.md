@@ -109,7 +109,7 @@ from unittest import TestCase
 from mock import patch
 import my_project.arcpy_wrapper
 
-@patch('my_module.arcpy_wrapper.arcpy')
+@patch('my_project.arcpy_wrapper.arcpy')
 class TestArcpyWrapper(TestCase):
   pass
 ```
@@ -119,24 +119,23 @@ To demonstrate how to use the mock module, we need an example.
 ### Listing unique workspaces within a map document
 Suppose we want to get a list of the unique workspaces used by a particular map document; perhaps we're setting up a new server instance, and we need to register the data sources that our map services will consume.  There could be SDE connections, shapefiles, and cloud-based services all within a single map, and each data source could be used by multiple layers.
 
-We can get a list of `Layer` objects from the `MapDocument.ListLayers` method, and we'll have to ask each layer for its [workspacePath]() property to build our list.  Once we have the list of *all* workspaces for all the layers, we need to filter out the unique ones.  Our first test might look like this:
+We can get a list of `Layer` objects from the `MapDocument.ListLayers` method, and we'll have to ask each layer for its [workspacePath]() property to build our list.  Once we have the list of *all* workspaces for all the layers, we need to filter out the unique ones.  We'd like to be able to test the deduplication logic, and not arcpy's ability to list layers or workspaces.  In order to take the arcpy logic out of consideration, we need to mock both the `ListLayers` call, as well as any `Layer` objects that would be returned.  Our first test might look like this:
 
 
 ```python
 from unittest import TestCase
 from mock import patch, MagicMock
 from arcpy_wrapper import list_workspaces_for_mxd
-import arcpy
 
-@patch('my_module.arcpy_helper.arcpy')
+@patch('my_project.arcpy_helper.arcpy')
 class TestListDataSources(TestCase):
 
     def test_list_single_data_source(self, mock_arcpy):
         data_source = 'layer1'
         
-        layer = MagicMock(spec=arcpy.Layer)
-        layer.supports = MagicMock(return_value=True)
-        layer.workspacePath = 'test/workspace'
+        layer = MagicMock()
+        layer.supports.return_value=True
+        layer.workspacePath = data_source
         
         mock_arcpy.mapping.ListLayers = MagicMock(return_value=[layer])
         mxd = {}  
@@ -145,3 +144,177 @@ class TestListDataSources(TestCase):
         
         self.assertEqual(expected, actual)
 ```
+
+
+We use the [MagicMock](https://docs.python.org/3/library/unittest.mock.html#unittest.mock.MagicMock) first to create a "fake" `Layer` object, and then again to force the `arcpy.mapping.ListLayers` call to return an array of our fake `Layer`s.  We can run this test without errors, and watch our assertion fail:
+
+```bash
+$ pytest tests/test_arcpy_wrapper.py
+============================= test session starts =============================
+platform win32 -- Python 2.7.12, pytest-3.1.2, py-1.4.34, pluggy-0.4.0
+rootdir: C:\develop\testing-arcpy, inifile:
+collected 1 items
+
+tests\test_arcpy_wrapper.py F
+
+================================== FAILURES ===================================
+______________ TestListDataSources.test_list_single_data_source _______________
+
+self = <tests.test_arcpy_wrapper.TestListDataSources testMethod=test_list_single_data_source>
+mock_arcpy = <MagicMock name='arcpy' id='107829008'>
+
+   def test_list_single_data_source(self, mock_arcpy):
+       data_source = 'layer1'
+
+       layer = MagicMock()
+       layer.supports.return_value = True
+       layer.workspacePath = data_source
+
+       mock_arcpy.mapping.ListLayers = MagicMock(return_value=[layer])
+       mxd = {}
+       expected = [data_source]
+       actual = list_workspaces_for_mxd(mxd)
+
+>       self.assertEqual(actual, expected)
+E       AssertionError:  None != ['layer1']
+tests\test_arcpy_wrapper.py:20: AssertionError
+========================== 1 failed in 4.91 seconds ===========================
+```
+
+We implement our business logic:
+
+```python
+import arcpy
+
+def list_workspaces_for_mxd(mxd):
+    workspaces = []
+    layers = arcpy.mapping.ListLayers(mxd)
+    for layer in layers:
+        if layer.supports("WORKSPACEPATH"):
+            workspaces.add(layer.workspacePath)
+    return workspaces
+```
+
+And the test should pass:
+
+```bash
+$ pytest tests/test_arcpy_wrapper.py
+============================= test session starts =============================
+platform win32 -- Python 2.7.12, pytest-3.1.2, py-1.4.34, pluggy-0.4.0
+rootdir: C:\develop\testing-arcpy, inifile:
+collected 1 items
+
+tests\test_arcpy_wrapper.py .
+
+========================== 1 passed in 4.90 seconds ===========================
+```
+
+Now we can do some refactoring, extracting the layer mocking into a helper method.  Then we add another test to remove duplicate layers from our list, which is the real logic we're trying to test:
+
+```python
+from unittest import TestCase
+from mock import patch, MagicMock
+from arcpy_wrapper import list_workspaces_for_mxd
+
+@patch('my_project.arcpy_helper.arcpy')
+class TestListDataSources(TestCase):
+
+    def create_mock_layer(self, workspace):
+        layer = MagicMock()
+        layer.supports = MagicMock(return_value=True)
+        layer.workspacePath = workspace
+        return layer
+
+    def test_list_single_data_source(self, mock_arcpy):
+        data_source = 'layer1'
+        layer = self.create_mock_layer(data_source)
+        mock_arcpy.mapping.ListLayers = MagicMock(return_value=[layer])
+        mxd = {}  
+        expected = [data_source]
+        actual = list_workspaces_for_mxd(mxd)
+        self.assertEqual(expected, actual)
+
+    def test_lists_unique_data_sources(self, mock_arcpy):
+        data_source1 = 'layer1'
+        data_source2 = 'layer2'
+        layer1 = self.create_mock_layer(data_source1)
+        layer2 = self.create_mock_layer(data_source2)
+        mock_arcpy.mapping.ListLayers = MagicMock(return_value=[layer1, layer1, layer2])
+        expected = sorted([data_source2, data_source1])
+        actual = sorted(list_workspaces_for_mxd({}))
+        self.assertEqual(expected, actual)
+```
+
+This will fail, since we have a duplicate layer:
+
+```bash
+$ pytest tests/test_arcpy_wrapper.py
+============================= test session starts =============================
+platform win32 -- Python 2.7.12, pytest-3.1.2, py-1.4.34, pluggy-0.4.0
+rootdir: C:\develop\testing-arcpy, inifile:
+collected 2 items
+
+tests\test_arcpy_wrapper.py .F
+
+================================== FAILURES ===================================
+_____________ TestListDataSources.test_lists_unique_data_sources ______________
+
+self = <tests.test_arcpy_wrapper.TestListDataSources testMethod=test_lists_unique_data_sources>
+mock_arcpy = <MagicMock name='arcpy' id='106170320'>
+
+   def test_lists_unique_data_sources(self, mock_arcpy):
+       data_source1 = 'layer1'
+       data_source2 = 'layer2'
+       layer1 = self.create_mock_layer(data_source1)
+       layer2 = self.create_mock_layer(data_source2)
+       mock_arcpy.mapping.ListLayers = MagicMock(return_value=[layer1, layer1, layer2])
+       expected = sorted([data_source2, data_source1])
+       actual = sorted(list_workspaces_for_mxd({}))
+>       self.assertEqual(expected, actual)
+E       AssertionError: Lists differ: ['layer1', 'layer2'] != ['layer1', 'layer1', 'layer2']
+E
+E       First differing element 1:
+E       'layer2'
+E       'layer1'
+E
+E       Second list contains 1 additional elements.
+E       First extra element 2:
+E       'layer2'
+E
+E       - ['layer1', 'layer2']
+E       + ['layer1', 'layer1', 'layer2']
+E       ?            ++++++++++
+
+tests\test_arcpy_wrapper.py:31: AssertionError
+===================== 1 failed, 1 passed in 5.26 seconds ======================
+```
+
+We need to add something to our business logic to remove duplicates; the easiest way is by using a `set`:
+
+```python
+import arcpy
+
+def list_workspaces_for_mxd(mxd):
+    workspaces = set()
+    layers = arcpy.mapping.ListLayers(mxd)
+    for layer in layers:
+        if layer.supports("WORKSPACEPATH"):
+            workspaces.add(layer.workspacePath)
+    return list(workspaces)
+```
+
+And now everything is green:
+
+```bash
+$ pytest tests/test_arcpy_wrapper.py
+============================= test session starts =============================
+platform win32 -- Python 2.7.12, pytest-3.1.2, py-1.4.34, pluggy-0.4.0
+rootdir: C:\develop\testing-arcpy, inifile:
+collected 2 items
+
+tests\test_arcpy_wrapper.py ..
+
+========================== 2 passed in 5.20 seconds ===========================
+```
+
+In general, we don't want to lean heavily on mocks; for cases where extensive mocking is needed, integration tests with real MXDs, etc. as fixtures may be a better alternative.  But when we have significant amounts of business logic to test, together with a few arcpy objects, mocking can be a good solution.
