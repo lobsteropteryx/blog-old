@@ -96,35 +96,52 @@ That's almost 500 times faster!
 
 Sometimes we can't help but have arcpy objects mixed in with our business logic; we may be working closely with domain objects in the GIS, (i.e. [MapDocument](http://desktop.arcgis.com/en/arcmap/latest/analyze/arcpy-mapping/mapdocument-class.htm) or [Layer](http://desktop.arcgis.com/en/arcmap/latest/analyze/arcpy-mapping/layer-class.htm) objects), and our business logic might be interacting with them directly.  In these cases, we can [mock](https://en.wikipedia.org/wiki/Mock_object) the arcpy calls and objects, to "get at" our actual business logic and test its functionality.
 
-### Listing unique workspaces within a map document
-Suppose we want to get a list of the unique workspaces used by a particular map document; we might be setting up a new server instance, and we need to register the data sources that our map services will consume.  There could be SDE connections, shapefiles, and cloud-based services all within a single map, and each data source could be used by multiple layers.
+To mock arcpy, we can use the [patch](https://docs.python.org/3/library/unittest.mock.html#unittest.mock.patch) decorator of python's mock class; at Python 2.7, the `mock` module needs to be installed separately:
 
-We can get a list of `Layer` objects from the `MapDocument.ListLayers` method, and we'll have to ask each layer for its [workspacePath]() property to build our list.  Once we have the list of *all* workspaces for all the layers, it's easy to narrow that down to the unique ones.  Our test might look like this:
+```bash
+pip install mock
+```
+
+Now we can use the `patch` decorator to mock out the arcpy module; note that the path we pass to the decorator is relative to where the arcpy module is used, as detailed in the [documentation](https://docs.python.org/3/library/unittest.mock.html#where-to-patch).  Since we're only importing arcpy from our wrapper module, the path will be `my_project.arcpy_wrapper.arcpy`: 
 
 ```python
-
 from unittest import TestCase
-from mock import MagicMock, patch
-from arcpy_helper.ArcpyHelper import list_workspaces_for_mxd
+from mock import patch
+import my_project.arcpy_wrapper
+
+@patch('my_module.arcpy_wrapper.arcpy')
+class TestArcpyWrapper(TestCase):
+  pass
+```
+
+To demonstrate how to use the mock module, we need an example. 
+
+### Listing unique workspaces within a map document
+Suppose we want to get a list of the unique workspaces used by a particular map document; perhaps we're setting up a new server instance, and we need to register the data sources that our map services will consume.  There could be SDE connections, shapefiles, and cloud-based services all within a single map, and each data source could be used by multiple layers.
+
+We can get a list of `Layer` objects from the `MapDocument.ListLayers` method, and we'll have to ask each layer for its [workspacePath]() property to build our list.  Once we have the list of *all* workspaces for all the layers, we need to filter out the unique ones.  Our first test might look like this:
+
+
+```python
+from unittest import TestCase
+from mock import patch, MagicMock
+from arcpy_wrapper import list_workspaces_for_mxd
+import arcpy
 
 @patch('my_module.arcpy_helper.arcpy')
 class TestListDataSources(TestCase):
 
-    @staticmethod
-    def create_mock_layer(workspace):
-        layer = MagicMock()
+    def test_list_single_data_source(self, mock_arcpy):
+        data_source = 'layer1'
+        
+        layer = MagicMock(spec=arcpy.Layer)
         layer.supports = MagicMock(return_value=True)
-        layer.workspacePath = workspace
-        return layer
-
-    def test_lists_unique_data_sources(self, mock_arcpy):
-        data_source1 = 'layer1'
-        data_source2 = 'layer2'
-        layer1 = self.create_mock_layer(data_source1)
-        layer2 = self.create_mock_layer(data_source2)
-        mock_arcpy.mapping.ListLayers = MagicMock(return_value=[layer1, layer1, layer2])
-        expected = sorted([data_source2, data_source1])
-        actual = sorted(list_workspaces_for_mxd({}))
+        layer.workspacePath = 'test/workspace'
+        
+        mock_arcpy.mapping.ListLayers = MagicMock(return_value=[layer])
+        mxd = {}  
+        expected = [data_source]
+        actual = list_workspaces_for_mxd(mxd)
+        
         self.assertEqual(expected, actual)
 ```
-
