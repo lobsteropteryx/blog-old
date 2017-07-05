@@ -318,3 +318,5 @@ tests\test_arcpy_wrapper.py ..
 ```
 
 In general, we don't want to lean heavily on mocks; for cases where extensive mocking is needed, integration tests with real MXDs, etc. as fixtures may be a better alternative.  But when we have significant amounts of business logic to test, together with a few arcpy objects, mocking can be a good solution.
+
+All of the examples shown here are available on [github](https://github.com/lobsteropteryx/testing-arcpy).
